@@ -117,3 +117,10 @@ body {
 }
 .toast.success { background: #16a34a; }
 .toast.error { background: #dc2626; }
+
+/* Bảo đảm các phần tử có [hidden] thực sự ẩn dù có đặt display ở class */
+.loading-overlay[hidden] { display: none !important; }
+.toast[hidden]           { display: none !important; }
+.spinner[hidden]         { display: none !important; }
+.spinner.sm[hidden]      { display: none !important; }
+.empty-state[hidden]     { display: none !important; }
