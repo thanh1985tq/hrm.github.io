@@ -1,0 +1,9 @@
+[build]
+  command = ""
+  publish = "."
+
+[[redirects]]
+  from = "/api/education-levels"
+  to = "/.netlify/functions/education-levels"
+  status = 200
+  force = true

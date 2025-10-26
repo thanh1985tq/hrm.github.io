@@ -1,0 +1,397 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Quản trị danh mục - Trình độ học vấn</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="./styles.css">
+</head>
+<body>
+  <div class="app">
+    <aside class="sidebar">
+      <div class="brand">Quản trị</div>
+      <nav class="menu">
+        <details open>
+          <summary>Quản trị hệ thống</summary>
+          <details open>
+            <summary>Quản trị danh mục</summary>
+            <button class="menu-item active" id="menu-edu">Danh mục trình độ học vấn</button>
+          </details>
+        </details>
+      </nav>
+    </aside>
+    <main class="content">
+      <header class="content-header">
+        <h1>Danh mục trình độ học vấn</h1>
+      </header>
+
+      <section class="search-bar">
+        <div class="field">
+          <label for="search-name">Tên</label>
+          <input id="search-name" type="text" placeholder="Nhập tên..." />
+        </div>
+        <div class="field">
+          <label for="search-code">Mã</label>
+          <input id="search-code" type="text" placeholder="Nhập mã..." />
+        </div>
+        <div class="actions">
+          <button id="btn-search" class="btn">Tìm kiếm</button>
+          <button id="btn-add" class="btn primary">+ Thêm mới</button>
+        </div>
+      </section>
+
+      <section class="table-wrap">
+        <table class="table" id="edu-table">
+          <thead>
+            <tr>
+              <th style="width: 80px;">Số thứ tự</th>
+              <th>Tên</th>
+              <th style="width: 160px;">Mã</th>
+              <th>Mô tả</th>
+              <th style="width: 140px;">Hành động</th>
+            </tr>
+          </thead>
+          <tbody id="edu-tbody">
+            <!-- rows injected by JS -->
+          </tbody>
+        </table>
+        <div id="table-empty" class="empty-state" hidden>Không có dữ liệu.</div>
+      </section>
+    </main>
+  </div>
+
+  <!-- Modal -->
+  <div class="modal" id="modal" aria-hidden="true">
+    <div class="modal-dialog" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+      <div class="modal-header">
+        <h2 id="modal-title">Thêm mới</h2>
+        <button class="icon-btn" id="modal-close" aria-label="Đóng">&times;</button>
+      </div>
+      <div class="modal-body">
+        <form id="modal-form">
+          <input type="hidden" id="modal-uuid" />
+          <div class="field">
+            <label for="modal-name">Tên <span class="req">*</span></label>
+            <input id="modal-name" type="text" required />
+          </div>
+          <div class="field">
+            <label for="modal-code">Mã <span class="req">*</span></label>
+            <input id="modal-code" type="text" required />
+          </div>
+          <div class="field">
+            <label for="modal-desc">Mô tả</label>
+            <textarea id="modal-desc" rows="3"></textarea>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button class="btn" id="modal-cancel">Hủy</button>
+        <button class="btn primary" id="modal-save">
+          <span class="spinner sm" id="modal-spinner" hidden></span>
+          Lưu
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Global loading overlay -->
+  <div id="loading-overlay" class="loading-overlay" hidden>
+    <div class="spinner"></div>
+    <div class="loading-text">Đang tải dữ liệu...</div>
+  </div>
+
+  <!-- Toast -->
+  <div id="toast" class="toast" hidden></div>
+
+  <script>
+    // ====== CONFIG ======
+    // Nếu frontend deploy cùng Netlify site: giữ path tương đối
+    const API_BASE = '/api/education-levels';
+    // Nếu frontend ở GitHub Pages, hãy dùng origin Netlify:
+    // const API_BASE = 'https://<your-site>.netlify.app/api/education-levels';
+
+    // ====== UTIL ======
+    const overlay = document.getElementById('loading-overlay');
+    const tbody = document.getElementById('edu-tbody');
+    const empty = document.getElementById('table-empty');
+    const toastEl = document.getElementById('toast');
+
+    function showOverlay(msg = 'Đang tải dữ liệu...') {
+      overlay.querySelector('.loading-text').textContent = msg;
+      overlay.hidden = false;
+    }
+    function hideOverlay() { overlay.hidden = true; }
+
+    function showToast(message, type = 'info') {
+      toastEl.textContent = message;
+      toastEl.className = 'toast ' + type;
+      toastEl.hidden = false;
+      setTimeout(() => { toastEl.hidden = true; }, 3500);
+    }
+
+    function createActionBtn(title, icon, className) {
+      const btn = document.createElement('button');
+      btn.className = 'icon-btn ' + (className || '');
+      btn.title = title;
+      btn.innerHTML = icon;
+      return btn;
+    }
+
+    function normalizeItems(resp) {
+      if (Array.isArray(resp)) return resp;
+      if (resp && Array.isArray(resp.items)) return resp.items;
+      if (resp && Array.isArray(resp.data)) return resp.data;
+      if (resp && resp.result && Array.isArray(resp.result)) return resp.result;
+      return [];
+    }
+
+    function renderRows(items) {
+      tbody.innerHTML = '';
+      if (!items || items.length === 0) {
+        empty.hidden = false;
+        return;
+      }
+      empty.hidden = true;
+      items.forEach((row, idx) => {
+        const tr = document.createElement('tr');
+        const uuid = row.UUID || row.uuid || row.id || row.Id || null;
+        const name = row.Name || row.name || '';
+        const code = row.Code || row.code || '';
+        const desc = row.Description || row.description || '';
+
+        tr.dataset.uuid = uuid || '';
+        tr.innerHTML = `
+          <td class="col-stt">${idx + 1}</td>
+          <td>${escapeHtml(name)}</td>
+          <td>${escapeHtml(code)}</td>
+          <td>${escapeHtml(desc)}</td>
+          <td class="col-actions"></td>
+        `;
+
+        const actionsTd = tr.querySelector('.col-actions');
+        const editBtn = createActionBtn('Sửa', '✏️');
+        const delBtn = createActionBtn('Xóa', '🗑️');
+
+        editBtn.addEventListener('click', () => openEdit(uuid));
+        delBtn.addEventListener('click', () => handleDelete(uuid));
+
+        actionsTd.appendChild(editBtn);
+        actionsTd.appendChild(delBtn);
+
+        tbody.appendChild(tr);
+      });
+    }
+
+    function escapeHtml(str) {
+      return String(str ?? '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+    }
+
+    // ====== DATA OPS ======
+    async function fetchList({ name = '', code = '', limit = 10 } = {}) {
+      const params = new URLSearchParams();
+      if (name) params.set('name', name);
+      if (code) params.set('code', code);
+      if (limit !== undefined && limit !== null) params.set('limit', String(limit));
+      const url = API_BASE + (params.toString() ? ('?' + params.toString()) : '');
+
+      const res = await fetch(url);
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        const msg = data && data.error ? data.error : ('Lỗi ' + res.status);
+        throw new Error(msg);
+      }
+      return normalizeItems(data);
+    }
+
+    async function fetchByUUID(uuid) {
+      const url = API_BASE + '?uuid=' + encodeURIComponent(uuid);
+      const res = await fetch(url);
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok) {
+        const msg = data && data.error ? data.error : ('Lỗi ' + res.status);
+        throw new Error(msg);
+      }
+      const items = normalizeItems(data);
+      return items[0] || {};
+    }
+
+    async function insertItem({ Name, Code, Description }) {
+      const res = await fetch(API_BASE, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ Name, Code, Description })
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || data.error) {
+        const msg = data && data.error ? data.error : ('Lỗi ' + res.status);
+        throw new Error(msg);
+      }
+      return data;
+    }
+
+    async function editItem({ UUID, Name, Code, Description }) {
+      const res = await fetch(API_BASE, {
+        method: 'PATCH',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ UUID, Name, Code, Description })
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || data.error) {
+        const msg = data && data.error ? data.error : ('Lỗi ' + res.status);
+        throw new Error(msg);
+      }
+      return data;
+    }
+
+    async function deleteItem(UUID) {
+      const res = await fetch(API_BASE, {
+        method: 'DELETE',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ UUID })
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || data.error) {
+        const msg = data && data.error ? data.error : ('Lỗi ' + res.status);
+        throw new Error(msg);
+      }
+      return data;
+    }
+
+    // ====== UI EVENTS ======
+    const btnSearch = document.getElementById('btn-search');
+    const btnAdd = document.getElementById('btn-add');
+
+    btnSearch.addEventListener('click', async () => {
+      const name = document.getElementById('search-name').value.trim();
+      const code = document.getElementById('search-code').value.trim();
+      showOverlay('Đang tìm kiếm...');
+      try {
+        const all = await fetchList({ name, code, limit: 0 }); // lấy tất cả kết quả khớp
+        renderRows(all);
+      } catch (err) {
+        showToast(err.message || 'Có lỗi xảy ra', 'error');
+      } finally {
+        hideOverlay();
+      }
+    });
+
+    btnAdd.addEventListener('click', () => openAdd());
+
+    async function initialLoad() {
+      showOverlay('Đang tải danh sách (10 bản ghi mới nhất)...');
+      try {
+        // Serverless đã cắt "10 bản ghi mới nhất (từ dưới lên)"
+        const list = await fetchList({ limit: 10 });
+        renderRows(list);
+      } catch (err) {
+        showToast(err.message || 'Có lỗi xảy ra', 'error');
+      } finally {
+        hideOverlay();
+      }
+    }
+
+    // ====== MODAL ======
+    const modal = document.getElementById('modal');
+    const modalClose = document.getElementById('modal-close');
+    const modalCancel = document.getElementById('modal-cancel');
+    const modalSave = document.getElementById('modal-save');
+    const modalSpinner = document.getElementById('modal-spinner');
+
+    function openModal() {
+      modal.removeAttribute('aria-hidden');
+      document.body.style.overflow = 'hidden';
+    }
+    function closeModal() {
+      modal.setAttribute('aria-hidden', 'true');
+      document.body.style.overflow = '';
+      document.getElementById('modal-form').reset();
+      document.getElementById('modal-uuid').value = '';
+    }
+    modalClose.addEventListener('click', closeModal);
+    modalCancel.addEventListener('click', closeModal);
+    modal.addEventListener('click', (e) => { if (e.target === modal) closeModal(); });
+
+    function setModalLoading(loading) {
+      modalSpinner.hidden = !loading;
+      modalSave.disabled = !!loading;
+    }
+
+    function openAdd() {
+      document.getElementById('modal-title').textContent = 'Thêm mới';
+      document.getElementById('modal-uuid').value = '';
+      openModal();
+    }
+
+    async function openEdit(uuid) {
+      document.getElementById('modal-title').textContent = 'Sửa bản ghi';
+      document.getElementById('modal-uuid').value = uuid || '';
+      openModal();
+      setModalLoading(true);
+      try {
+        const item = await fetchByUUID(uuid);
+        document.getElementById('modal-name').value = item.Name || item.name || '';
+        document.getElementById('modal-code').value = item.Code || item.code || '';
+        document.getElementById('modal-desc').value = item.Description || item.description || '';
+      } catch (err) {
+        showToast(err.message || 'Không tải được dữ liệu bản ghi', 'error');
+      } finally {
+        setModalLoading(false);
+      }
+    }
+
+    modalSave.addEventListener('click', async () => {
+      const uuid = document.getElementById('modal-uuid').value.trim();
+      const Name = document.getElementById('modal-name').value.trim();
+      const Code = document.getElementById('modal-code').value.trim();
+      const Description = document.getElementById('modal-desc').value.trim();
+
+      if (!Name || !Code) {
+        showToast('Vui lòng nhập đầy đủ Tên và Mã', 'error');
+        return;
+      }
+      setModalLoading(true);
+      try {
+        if (uuid) {
+          await editItem({ UUID: uuid, Name, Code, Description });
+          showToast('Đã cập nhật.' , 'success');
+        } else {
+          await insertItem({ Name, Code, Description });
+          showToast('Đã thêm mới.' , 'success');
+        }
+        closeModal();
+        initialLoad();
+      } catch (err) {
+        showToast(err.message || 'Thao tác thất bại', 'error');
+      } finally {
+        setModalLoading(false);
+      }
+    });
+
+    async function handleDelete(uuid) {
+      if (!uuid) { showToast('Thiếu UUID bản ghi', 'error'); return; }
+      if (!confirm('Bạn có chắc muốn xóa bản ghi này?')) return;
+      showOverlay('Đang xóa...');
+      try {
+        await deleteItem(uuid);
+        showToast('Đã xóa.', 'success');
+        initialLoad();
+      } catch (err) {
+        showToast(err.message || 'Xóa thất bại', 'error');
+      } finally {
+        hideOverlay();
+      }
+    }
+
+    // Init
+    initialLoad();
+  </script>
+</body>
+</html>

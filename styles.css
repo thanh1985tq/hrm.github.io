@@ -1,0 +1,119 @@
+/* Basic layout */
+* { box-sizing: border-box; }
+html, body { height: 100%; }
+body {
+  margin: 0;
+  font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji";
+  background: #f6f7fb;
+  color: #1f2937;
+}
+.app { display: grid; grid-template-columns: 260px 1fr; min-height: 100vh; }
+
+.sidebar {
+  background: #111827;
+  color: #e5e7eb;
+  padding: 16px;
+}
+.brand { font-weight: 600; font-size: 18px; margin-bottom: 12px; }
+
+.menu details { margin: 8px 0; }
+.menu summary {
+  list-style: none;
+  cursor: pointer;
+  padding: 8px 10px;
+  border-radius: 6px;
+  color: #cbd5e1;
+}
+.menu summary:hover { background: #1f2937; }
+.menu-item {
+  display: block; width: 100%; text-align: left;
+  background: transparent; color: #e5e7eb;
+  border: none; padding: 8px 12px; margin: 6px 0 6px 16px; border-radius: 6px;
+  cursor: pointer;
+}
+.menu-item:hover { background: #1f2937; }
+.menu-item.active { background: #374151; }
+
+.content { padding: 20px 24px; }
+.content-header h1 { margin: 0 0 12px; font-size: 20px; }
+
+.search-bar {
+  background: white; padding: 12px; border-radius: 10px;
+  display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-end;
+  box-shadow: 0 1px 2px rgba(0,0,0,.04);
+}
+.field { display: flex; flex-direction: column; gap: 6px; }
+.field input, .field textarea {
+  padding: 10px 12px; border: 1px solid #e5e7eb; border-radius: 8px; outline: none;
+}
+.field label { font-size: 13px; color: #4b5563; }
+.req { color: #ef4444; }
+
+.actions { margin-left: auto; display: flex; gap: 8px; }
+.btn {
+  padding: 10px 14px; border-radius: 8px; border: 1px solid #e5e7eb; background: #fff;
+  cursor: pointer;
+}
+.btn:hover { background: #f3f4f6; }
+.btn.primary {
+  background: #2563eb; color: white; border-color: #2563eb;
+}
+.btn.primary:hover { background: #1d4ed8; }
+
+.table-wrap {
+  margin-top: 14px;
+  background: white; padding: 0; border-radius: 10px;
+  box-shadow: 0 1px 2px rgba(0,0,0,.04);
+}
+.table { width: 100%; border-collapse: collapse; }
+.table th, .table td { padding: 12px 10px; border-bottom: 1px solid #f1f5f9; vertical-align: top; }
+.table thead th { text-align: left; font-weight: 600; font-size: 13px; color: #475569; background: #fafafa; }
+.table tbody tr:hover { background: #fafafa; }
+.col-stt { text-align: center; color: #64748b; }
+.col-actions { display: flex; gap: 8px; }
+
+.icon-btn {
+  background: transparent; border: none; cursor: pointer; font-size: 18px;
+  padding: 6px; border-radius: 6px;
+}
+.icon-btn:hover { background: #e5e7eb; }
+
+.empty-state { padding: 16px; color: #64748b; font-style: italic; }
+
+/* Modal */
+.modal[aria-hidden="true"] { display: none; }
+.modal {
+  position: fixed; inset: 0; background: rgba(0,0,0,.35);
+  display: grid; place-items: center; z-index: 50;
+}
+.modal-dialog {
+  background: white; width: min(640px, 92vw); border-radius: 12px; overflow: hidden;
+  box-shadow: 0 10px 30px rgba(0,0,0,.2);
+}
+.modal-header, .modal-footer {
+  padding: 12px 14px; display: flex; align-items: center; justify-content: space-between;
+  border-bottom: 1px solid #f1f5f9;
+}
+.modal-footer { border-top: 1px solid #f1f5f9; border-bottom: none; }
+.modal-body { padding: 14px; }
+.modal .field { margin-bottom: 10px; }
+
+/* Loading overlay */
+.loading-overlay {
+  position: fixed; inset: 0; display: grid; place-items: center; gap: 10px;
+  background: rgba(255,255,255,.75); z-index: 40;
+}
+.spinner, .spinner.sm {
+  width: 42px; height: 42px; border: 4px solid #e5e7eb; border-top-color: #2563eb;
+  border-radius: 50%; animation: spin 1s linear infinite;
+}
+.spinner.sm { width: 18px; height: 18px; border-width: 3px; display: inline-block; vertical-align: middle; margin-right: 6px; }
+@keyframes spin { to { transform: rotate(360deg); } }
+
+/* Toast */
+.toast {
+  position: fixed; right: 16px; bottom: 16px; background: #111827; color: white;
+  padding: 10px 12px; border-radius: 8px; z-index: 60; box-shadow: 0 8px 20px rgba(0,0,0,.2);
+}
+.toast.success { background: #16a34a; }
+.toast.error { background: #dc2626; }
