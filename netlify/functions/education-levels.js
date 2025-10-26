@@ -1,5 +1,5 @@
 // netlify/functions/education-levels.js
-const BASE_URL = "https://script.google.com/macros/s/AKfycbw70NAsy37pZ3mvvqNUZAJBEThLg-BZcuMvNztNBI3psu-MV7ELGs1RSwClOOV1MrFFMg/exec";
+const BASE_URL = "https://script.google.com/macros/s/AKfycbw8OoNMgbEcFP63N77bvjOdjW5vbNW4GyLmGlJ9qEf6yo1akWXxJhc2ps-7CkL6YJHhSQ/exec";
 
 // Build allowed origin set (normalized)
 function normalizeOrigin(s) {
