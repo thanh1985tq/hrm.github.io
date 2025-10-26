@@ -1,0 +1,504 @@
+<!doctype html>
+<html lang="vi">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Quản trị danh mục - Trình độ học vấn</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600&display=swap" rel="stylesheet">
+  <style>
+    /* ===== styles.css (inline) ===== */
+    * { box-sizing: border-box; }
+    html, body { height: 100%; }
+    body {
+      margin: 0;
+      font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, Helvetica, Arial, "Apple Color Emoji", "Segoe UI Emoji";
+      background: #f6f7fb;
+      color: #1f2937;
+    }
+    .app { display: grid; grid-template-columns: 260px 1fr; min-height: 100vh; }
+
+    .sidebar { background: #111827; color: #e5e7eb; padding: 16px; }
+    .brand { font-weight: 600; font-size: 18px; margin-bottom: 12px; }
+
+    .menu details { margin: 8px 0; }
+    .menu summary {
+      list-style: none; cursor: pointer; padding: 8px 10px; border-radius: 6px; color: #cbd5e1;
+    }
+    .menu summary:hover { background: #1f2937; }
+    .menu-item {
+      display: block; width: 100%; text-align: left;
+      background: transparent; color: #e5e7eb; border: none;
+      padding: 8px 12px; margin: 6px 0 6px 16px; border-radius: 6px; cursor: pointer;
+    }
+    .menu-item:hover { background: #1f2937; }
+    .menu-item.active { background: #374151; }
+
+    .content { padding: 20px 24px; }
+    .content-header h1 { margin: 0 0 12px; font-size: 20px; }
+
+    .search-bar {
+      background: white; padding: 12px; border-radius: 10px;
+      display: flex; flex-wrap: wrap; gap: 12px; align-items: flex-end;
+      box-shadow: 0 1px 2px rgba(0,0,0,.04);
+    }
+    .field { display: flex; flex-direction: column; gap: 6px; }
+    .field input, .field textarea {
+      padding: 10px 12px; border: 1px solid #e5e7eb; border-radius: 8px; outline: none;
+    }
+    .field label { font-size: 13px; color: #4b5563; }
+    .req { color: #ef4444; }
+
+    .actions { margin-left: auto; display: flex; gap: 8px; }
+    .btn {
+      padding: 10px 14px; border-radius: 8px; border: 1px solid #e5e7eb; background: #fff;
+      cursor: pointer;
+    }
+    .btn:hover { background: #f3f4f6; }
+    .btn.primary { background: #2563eb; color: white; border-color: #2563eb; }
+    .btn.primary:hover { background: #1d4ed8; }
+
+    .table-wrap {
+      margin-top: 14px; background: white; padding: 0; border-radius: 10px;
+      box-shadow: 0 1px 2px rgba(0,0,0,.04);
+    }
+    .table { width: 100%; border-collapse: collapse; }
+    .table th, .table td { padding: 12px 10px; border-bottom: 1px solid #f1f5f9; vertical-align: top; }
+    .table thead th { text-align: left; font-weight: 600; font-size: 13px; color: #475569; background: #fafafa; }
+    .table tbody tr:hover { background: #fafafa; }
+    .col-stt { text-align: center; color: #64748b; }
+    .col-actions { display: flex; gap: 8px; }
+
+    .icon-btn {
+      background: transparent; border: none; cursor: pointer; font-size: 18px;
+      padding: 6px; border-radius: 6px;
+    }
+    .icon-btn:hover { background: #e5e7eb; }
+
+    .empty-state { padding: 16px; color: #64748b; font-style: italic; }
+
+    /* Modal */
+    .modal[aria-hidden="true"] { display: none; }
+    .modal {
+      position: fixed; inset: 0; background: rgba(0,0,0,.35);
+      display: grid; place-items: center; z-index: 50;
+    }
+    .modal-dialog {
+      background: white; width: min(640px, 92vw); border-radius: 12px; overflow: hidden;
+      box-shadow: 0 10px 30px rgba(0,0,0,.2);
+    }
+    .modal-header, .modal-footer {
+      padding: 12px 14px; display: flex; align-items: center; justify-content: space-between;
+      border-bottom: 1px solid #f1f5f9;
+    }
+    .modal-footer { border-top: 1px solid #f1f5f9; border-bottom: none; }
+    .modal-body { padding: 14px; }
+    .modal .field { margin-bottom: 10px; }
+
+    /* Loading overlay */
+    .loading-overlay {
+      position: fixed; inset: 0; display: grid; place-items: center; gap: 10px;
+      background: rgba(255,255,255,.75); z-index: 40;
+    }
+    .spinner, .spinner.sm {
+      width: 42px; height: 42px; border: 4px solid #e5e7eb; border-top-color: #2563eb;
+      border-radius: 50%; animation: spin 1s linear infinite;
+    }
+    .spinner.sm { width: 18px; height: 18px; border-width: 3px; display: inline-block; vertical-align: middle; margin-right: 6px; }
+    @keyframes spin { to { transform: rotate(360deg); } }
+
+    /* Toast */
+    .toast {
+      position: fixed; right: 16px; bottom: 16px; background: #111827; color: white;
+      padding: 10px 12px; border-radius: 8px; z-index: 60; box-shadow: 0 8px 20px rgba(0,0,0,.2);
+    }
+    .toast.success { background: #16a34a; }
+    .toast.error { background: #dc2626; }
+
+    /* Quan trọng: đảm bảo [hidden] thật sự ẩn */
+    .loading-overlay[hidden] { display: none !important; }
+    .toast[hidden]           { display: none !important; }
+    .spinner[hidden]         { display: none !important; }
+    .spinner.sm[hidden]      { display: none !important; }
+    .empty-state[hidden]     { display: none !important; }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <aside class="sidebar">
+      <div class="brand">Quản trị</div>
+      <nav class="menu">
+        <details open>
+          <summary>Quản trị hệ thống</summary>
+          <details open>
+            <summary>Quản trị danh mục</summary>
+            <button class="menu-item active" id="menu-edu">Danh mục trình độ học vấn</button>
+          </details>
+        </details>
+      </nav>
+    </aside>
+    <main class="content">
+      <header class="content-header">
+        <h1>Danh mục trình độ học vấn</h1>
+      </header>
+
+      <section class="search-bar">
+        <div class="field">
+          <label for="search-name">Tên</label>
+          <input id="search-name" type="text" placeholder="Nhập tên..." />
+        </div>
+        <div class="field">
+          <label for="search-code">Mã</label>
+          <input id="search-code" type="text" placeholder="Nhập mã..." />
+        </div>
+        <div class="actions">
+          <button id="btn-search" class="btn">Tìm kiếm</button>
+          <button id="btn-add" class="btn primary">+ Thêm mới</button>
+        </div>
+      </section>
+
+      <section class="table-wrap">
+        <table class="table" id="edu-table">
+          <thead>
+            <tr>
+              <th style="width: 80px;">Số thứ tự</th>
+              <th>Tên</th>
+              <th style="width: 160px;">Mã</th>
+              <th>Mô tả</th>
+              <th style="width: 140px;">Hành động</th>
+            </tr>
+          </thead>
+          <tbody id="edu-tbody"></tbody>
+        </table>
+        <div id="table-empty" class="empty-state" hidden>Không có dữ liệu.</div>
+      </section>
+    </main>
+  </div>
+
+  <!-- Modal -->
+  <div class="modal" id="modal" aria-hidden="true">
+    <div class="modal-dialog" role="dialog" aria-modal="true" aria-labelledby="modal-title">
+      <div class="modal-header">
+        <h2 id="modal-title">Thêm mới</h2>
+        <button class="icon-btn" id="modal-close" aria-label="Đóng">&times;</button>
+      </div>
+      <div class="modal-body">
+        <form id="modal-form">
+          <input type="hidden" id="modal-uuid" />
+          <div class="field">
+            <label for="modal-name">Tên <span class="req">*</span></label>
+            <input id="modal-name" type="text" required />
+          </div>
+          <div class="field">
+            <label for="modal-code">Mã <span class="req">*</span></label>
+            <input id="modal-code" type="text" required />
+          </div>
+          <div class="field">
+            <label for="modal-desc">Mô tả</label>
+            <textarea id="modal-desc" rows="3"></textarea>
+          </div>
+        </form>
+      </div>
+      <div class="modal-footer">
+        <button class="btn" id="modal-cancel">Hủy</button>
+        <button class="btn primary" id="modal-save">
+          <span class="spinner sm" id="modal-spinner" hidden></span>
+          Lưu
+        </button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Global loading overlay -->
+  <div id="loading-overlay" class="loading-overlay" hidden>
+    <div class="spinner"></div>
+    <div class="loading-text">Đang tải dữ liệu...</div>
+  </div>
+
+  <!-- Toast -->
+  <div id="toast" class="toast" hidden></div>
+
+  <script>
+    // ================== CONFIG ==================
+    // ⚠️ Chỉ dùng khi chấp nhận lộ token trên client.
+    const TOKEN = 'dDFoMmEzbjRodmNAMTk4NQ';
+    const GAS_BASE = 'https://script.google.com/macros/s/AKfycbw70NAsy37pZ3mvvqNUZAJBEThLg-BZcuMvNztNBI3psu-MV7ELGs1RSwClOOV1MrFFMg/exec';
+
+    // ================== UTIL ==================
+    const overlay = document.getElementById('loading-overlay');
+    const tbody = document.getElementById('edu-tbody');
+    const empty = document.getElementById('table-empty');
+    const toastEl = document.getElementById('toast');
+
+    function showOverlay(msg = 'Đang tải dữ liệu...') {
+      overlay.querySelector('.loading-text').textContent = msg;
+      overlay.hidden = false;
+    }
+    function hideOverlay() { overlay.hidden = true; }
+
+    function showToast(message, type = 'info') {
+      toastEl.textContent = message;
+      toastEl.className = 'toast ' + type;
+      toastEl.hidden = false;
+      setTimeout(() => { toastEl.hidden = true; }, 3500);
+    }
+
+    function createActionBtn(title, icon, className) {
+      const btn = document.createElement('button');
+      btn.className = 'icon-btn ' + (className || '');
+      btn.title = title;
+      btn.innerHTML = icon;
+      return btn;
+    }
+
+    function normalizeItems(resp) {
+      if (Array.isArray(resp)) return resp;
+      if (resp && Array.isArray(resp.items)) return resp.items;
+      if (resp && Array.isArray(resp.data)) return resp.data;
+      if (resp && resp.result && Array.isArray(resp.result)) return resp.result;
+      return [];
+    }
+
+    function escapeHtml(str) {
+      return String(str ?? '')
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+        .replace(/"/g, '&quot;')
+        .replace(/'/g, '&#039;');
+    }
+
+    function renderRows(items) {
+      tbody.innerHTML = '';
+      if (!items || items.length === 0) {
+        empty.hidden = false;
+        return;
+      }
+      empty.hidden = true;
+      items.forEach((row, idx) => {
+        const tr = document.createElement('tr');
+        const uuid = row.UUID || row.uuid || row.id || row.Id || null;
+        const name = row.Name || row.name || '';
+        const code = row.Code || row.code || '';
+        const desc = row.Description || row.description || '';
+
+        tr.dataset.uuid = uuid || '';
+        tr.innerHTML = `
+          <td class="col-stt">${idx + 1}</td>
+          <td>${escapeHtml(name)}</td>
+          <td>${escapeHtml(code)}</td>
+          <td>${escapeHtml(desc)}</td>
+          <td class="col-actions"></td>
+        `;
+
+        const actionsTd = tr.querySelector('.col-actions');
+        const editBtn = createActionBtn('Sửa', '✏️');
+        const delBtn = createActionBtn('Xóa', '🗑️');
+
+        editBtn.addEventListener('click', () => openEdit(uuid));
+        delBtn.addEventListener('click', () => handleDelete(uuid));
+
+        actionsTd.appendChild(editBtn);
+        actionsTd.appendChild(delBtn);
+
+        tbody.appendChild(tr);
+      });
+    }
+
+    function pickLastN(list, n) {
+      if (!Array.isArray(list)) return [];
+      if (list.length <= n) return [...list].reverse(); // newest from bottom -> reverse to show newest first
+      return [...list.slice(-n)].reverse();
+    }
+
+    // ================== API (direct GAS) ==================
+    async function apiGetList({ code = '' } = {}) {
+      // GAS "get" có param code (có thể bỏ trống), cần token
+      const url = new URL(GAS_BASE);
+      url.searchParams.set('action', 'get');
+      url.searchParams.set('token', TOKEN);
+      // server có vẻ yêu cầu 'code' tồn tại, cho rỗng nếu không lọc
+      url.searchParams.set('code', code ?? '');
+
+      const res = await fetch(url.toString(), { cache: 'no-store' });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || data.error) {
+        throw new Error(data && data.error ? data.error : ('Lỗi ' + res.status));
+      }
+      return normalizeItems(data);
+    }
+
+    async function apiInsert({ Name, Code, Description }) {
+      const url = `${GAS_BASE}?token=${encodeURIComponent(TOKEN)}&action=insert`;
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ Name, Code, Description })
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || data.error) throw new Error(data.error || ('Lỗi ' + res.status));
+      return data;
+    }
+
+    async function apiEdit({ UUID, Name, Code, Description }) {
+      const url = `${GAS_BASE}?token=${encodeURIComponent(TOKEN)}&action=edit`;
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ UUID, Name, Code, Description })
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || data.error) throw new Error(data.error || ('Lỗi ' + res.status));
+      return data;
+    }
+
+    async function apiDelete(UUID) {
+      const url = `${GAS_BASE}?token=${encodeURIComponent(TOKEN)}&action=delete`;
+      const res = await fetch(url, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ UUID })
+      });
+      const data = await res.json().catch(() => ({}));
+      if (!res.ok || data.error) throw new Error(data.error || ('Lỗi ' + res.status));
+      return data;
+    }
+
+    // ================== UI EVENTS ==================
+    const btnSearch = document.getElementById('btn-search');
+    const btnAdd = document.getElementById('btn-add');
+
+    btnSearch.addEventListener('click', async () => {
+      const name = document.getElementById('search-name').value.trim();
+      const code = document.getElementById('search-code').value.trim();
+      showOverlay('Đang tìm kiếm...');
+      try {
+        // Tối ưu: nhờ server lọc code (nếu API hỗ trợ), phần còn lại lọc client
+        const list = await apiGetList({ code });
+        const filtered = list.filter(item => {
+          const okName = !name || String(item.Name || item.name || '').toLowerCase().includes(name.toLowerCase());
+          const okCode = !code || String(item.Code || item.code || '').toLowerCase().includes(code.toLowerCase());
+          return okName && okCode;
+        });
+        renderRows(filtered);
+      } catch (err) {
+        showToast(err.message || 'Có lỗi xảy ra', 'error');
+      } finally {
+        hideOverlay();
+      }
+    });
+
+    btnAdd.addEventListener('click', () => openAdd());
+
+    async function initialLoad() {
+      showOverlay('Đang tải danh sách (10 bản ghi mới nhất)...');
+      try {
+        const list = await apiGetList({ code: '' });
+        renderRows(pickLastN(list, 10));
+      } catch (err) {
+        showToast(err.message || 'Không tải được danh sách', 'error');
+      } finally {
+        hideOverlay();
+      }
+    }
+
+    // ================== MODAL ==================
+    const modal = document.getElementById('modal');
+    const modalClose = document.getElementById('modal-close');
+    const modalCancel = document.getElementById('modal-cancel');
+    const modalSave = document.getElementById('modal-save');
+    const modalSpinner = document.getElementById('modal-spinner');
+
+    function openModal() {
+      modal.removeAttribute('aria-hidden');
+      document.body.style.overflow = 'hidden';
+    }
+    function closeModal() {
+      modal.setAttribute('aria-hidden', 'true');
+      document.body.style.overflow = '';
+      document.getElementById('modal-form').reset();
+      document.getElementById('modal-uuid').value = '';
+    }
+    modalClose.addEventListener('click', closeModal);
+    modalCancel.addEventListener('click', closeModal);
+    modal.addEventListener('click', (e) => { if (e.target === modal) closeModal(); });
+
+    function setModalLoading(loading) {
+      modalSpinner.hidden = !loading;
+      modalSave.disabled = !!loading;
+    }
+
+    function openAdd() {
+      document.getElementById('modal-title').textContent = 'Thêm mới';
+      document.getElementById('modal-uuid').value = '';
+      openModal();
+    }
+
+    async function openEdit(uuid) {
+      document.getElementById('modal-title').textContent = 'Sửa bản ghi';
+      document.getElementById('modal-uuid').value = uuid || '';
+      openModal();
+      setModalLoading(true);
+      try {
+        // Không có API get-by-UUID => lấy danh sách và tìm đúng UUID
+        const list = await apiGetList({ code: '' });
+        const item = list.find(x => (x.UUID || x.uuid || x.id || x.Id) === uuid) || {};
+        document.getElementById('modal-name').value = item.Name || item.name || '';
+        document.getElementById('modal-code').value = item.Code || item.code || '';
+        document.getElementById('modal-desc').value = item.Description || item.description || '';
+      } catch (err) {
+        showToast(err.message || 'Không tải được dữ liệu bản ghi', 'error');
+      } finally {
+        setModalLoading(false);
+      }
+    }
+
+    modalSave.addEventListener('click', async () => {
+      const uuid = document.getElementById('modal-uuid').value.trim();
+      const Name = document.getElementById('modal-name').value.trim();
+      const Code = document.getElementById('modal-code').value.trim();
+      const Description = document.getElementById('modal-desc').value.trim();
+
+      if (!Name || !Code) {
+        showToast('Vui lòng nhập đầy đủ Tên và Mã', 'error');
+        return;
+      }
+      setModalLoading(true);
+      try {
+        if (uuid) {
+          await apiEdit({ UUID: uuid, Name, Code, Description });
+          showToast('Đã cập nhật.', 'success');
+        } else {
+          await apiInsert({ Name, Code, Description });
+          showToast('Đã thêm mới.', 'success');
+        }
+        closeModal();
+        initialLoad();
+      } catch (err) {
+        showToast(err.message || 'Thao tác thất bại', 'error');
+      } finally {
+        setModalLoading(false);
+      }
+    });
+
+    async function handleDelete(uuid) {
+      if (!uuid) { showToast('Thiếu UUID bản ghi', 'error'); return; }
+      if (!confirm('Bạn có chắc muốn xóa bản ghi này?')) return;
+      showOverlay('Đang xóa...');
+      try {
+        await apiDelete(uuid);
+        showToast('Đã xóa.', 'success');
+        initialLoad();
+      } catch (err) {
+        showToast(err.message || 'Xóa thất bại', 'error');
+      } finally {
+        hideOverlay();
+      }
+    }
+
+    // ================== Start ==================
+    initialLoad();
+  </script>
+</body>
+</html>
